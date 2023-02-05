@@ -39,9 +39,7 @@ public class MethodMapping {
 
             RequestParam requestParamAnn = parameter.getAnnotation(RequestParam.class);
             if (requestParamAnn != null) {
-                System.out.println(requestParams);
                 Object reqParam = requestParams.get(parameter.getName());
-                System.out.println(reqParam);
                 parsedParameters.add(reqParam);
             }
         }
