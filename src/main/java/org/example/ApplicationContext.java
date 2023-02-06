@@ -4,6 +4,8 @@ import org.example.Annotations.Mappings.DeleteMapping;
 import org.example.Annotations.Mappings.GetMapping;
 import org.example.Annotations.Mappings.PostMapping;
 import org.example.Annotations.Mappings.PutMapping;
+import org.example.Annotations.Mappings.*;
+import org.example.Annotations.ResponseBody;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -15,18 +17,8 @@ import java.util.regex.Pattern;
 
 public class ApplicationContext {
     List<Class<?>> controllers = new ArrayList<>();
-    List<Class<?>> components = new ArrayList<>();
     Map<String, MethodMapping> methodMappings = new HashMap<>();
     List<RegexMethodMapping> regexMethodMappings = new ArrayList<>();
-
-    public void registerController(Class<?> controllerClass) {
-        controllers.add(controllerClass);
-        registerMethodMappingsForController(controllerClass);
-    }
-
-    public void registerComponent(Class<?> componentClass) {
-        components.add(componentClass);
-    }
 
     public MethodMapping getMethodMapping(String url, String method) {
         MethodMapping methodMapping = methodMappings.get(url + " " + method);
@@ -36,15 +28,25 @@ public class ApplicationContext {
     }
 
     private Pattern pattern = Pattern.compile("(\\{(.+)})");
-    private void registerMethodMappingsForController(Class<?> controllerClass) {
-        org.example.Annotations.Mappings.RequestMapping requestMapping = controllerClass.getAnnotation(org.example.Annotations.Mappings.RequestMapping.class);
+    public void registerController(Class<?> controllerClass, Class<?> annotatedClass, boolean isResponseBody) throws NoSuchMethodException {
+        controllers.add(controllerClass);
+
+        RequestMapping requestMapping = annotatedClass.getAnnotation(RequestMapping.class);
         String controllerPath = "";
         if (requestMapping != null)
             controllerPath = requestMapping.value();
         Method[] methods = controllerClass.getDeclaredMethods();
         for (Method method : methods) {
-            MethodMapping methodMapping = new MethodMapping(controllerClass, method);
-            String path = getPathFromMethod(method, methodMapping);
+            String methodName = method.getName();
+            Class<?>[] parameterTypes = method.getParameterTypes();
+            Method annotatedMethod = annotatedClass.getMethod(methodName, parameterTypes);
+
+            ResponseBody responseBody = annotatedMethod.getAnnotation(ResponseBody.class);
+            if (responseBody != null || method.getReturnType().equals(ResponseEntity.class))
+                isResponseBody = true;
+            MethodMapping methodMapping = new MethodMapping(controllerClass, method, isResponseBody);
+
+            String path = getPathFromMethod(annotatedMethod, methodMapping);
             if (path == null)
                 continue;
             if (!isRegex(path))

@@ -19,12 +19,15 @@ public class MethodMapping {
     Map<String, Object> requestParams;
     Object requestBody;
     Class<?> requestBodyType;
-    public MethodMapping(Class<?> controller, Method method) {
+    boolean isResponseBody;
+
+    public MethodMapping(Class<?> controller, Method method, boolean isResponseBody) {
         this.controller = controller;
         this.method = method;
         this.parameterIndexes = new HashMap<>();
         this.requestBodyType = findRequestBodyType();
         this.requestParams = new HashMap<>();
+        this.isResponseBody = isResponseBody;
     }
 
     protected List<Object> initializeMethodParameters() throws ServletException {
@@ -43,7 +46,6 @@ public class MethodMapping {
                 parsedParameters.add(reqParam);
             }
         }
-
         return parsedParameters;
     }
 
@@ -65,7 +67,10 @@ public class MethodMapping {
 
     public Object invoke(Object instance) throws InvocationTargetException, IllegalAccessException, ServletException {
         List<Object> parameters = initializeMethodParameters();
-        return method.invoke(instance, parameters.toArray(new Object[0]));
+        Object result = method.invoke(instance, parameters.toArray(new Object[0]));
+        requestBody = null;
+        requestParams = new HashMap<>();
+        return result;
     }
 
     Class<?> findRequestBodyType() {

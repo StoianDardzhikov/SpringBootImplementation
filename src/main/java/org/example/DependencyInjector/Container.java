@@ -235,7 +235,7 @@ public class Container {
 
     private void populateListeners(List<Method> listenerMethods, Object instance) throws ContainerException {
         for (Method method : listenerMethods) {
-            EventListener eventListener = method.getAnnotation(EventListener.class);
+            org.example.DependencyInjector.Annotations.EventListener eventListener = method.getAnnotation(org.example.DependencyInjector.Annotations.EventListener.class);
             if (eventListener != null) {
                 Enhancer enhancer = new Enhancer();
                 enhancer.setSuperclass(Listener.class);
@@ -271,7 +271,7 @@ public class Container {
         Method[] methods = beanClass.getDeclaredMethods();
         List<Method> eventListenerMethods = new ArrayList<>();
         for (Method method : methods) {
-            EventListener eventListener = method.getAnnotation(EventListener.class);
+            org.example.DependencyInjector.Annotations.EventListener eventListener = method.getAnnotation(EventListener.class);
             if (eventListener != null) {
                 eventListenerMethods.add(method);
             }

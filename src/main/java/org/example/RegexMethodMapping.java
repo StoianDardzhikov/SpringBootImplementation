@@ -14,13 +14,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RegexMethodMapping extends MethodMapping {
-    public RegexMethodMapping(MethodMapping methodMapping) {
-        super(methodMapping.controller, methodMapping.method);
-        parameterIndexes = methodMapping.parameterIndexes;
-    }
     Matcher matcher;
     Pattern regexPattern;
     String method;
+
+    public RegexMethodMapping(MethodMapping methodMapping) {
+        super(methodMapping.controller, methodMapping.method, methodMapping.isResponseBody);
+        parameterIndexes = methodMapping.parameterIndexes;
+    }
+
     public void setPattern(String pattern) {
         this.regexPattern = Pattern.compile(pattern);
     }
@@ -28,6 +30,7 @@ public class RegexMethodMapping extends MethodMapping {
     public void setMethod(String method) {
         this.method = method;
     }
+
 
     public boolean isMatchingUrl(String url, String method) {
         this.matcher = regexPattern.matcher(url);
