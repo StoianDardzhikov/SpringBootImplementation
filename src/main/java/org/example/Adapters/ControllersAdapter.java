@@ -1,11 +1,13 @@
-package org.example;
+package org.example.Adapters;
 
-import org.example.Annotations.Mappings.DeleteMapping;
-import org.example.Annotations.Mappings.GetMapping;
-import org.example.Annotations.Mappings.PostMapping;
-import org.example.Annotations.Mappings.PutMapping;
+import org.example.Annotations.Component;
+import org.example.Annotations.Controller;
 import org.example.Annotations.Mappings.*;
 import org.example.Annotations.ResponseBody;
+import org.example.Annotations.RestController;
+import org.example.MethodMapping;
+import org.example.RegexMethodMapping;
+import org.example.ResponseEntity;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -15,10 +17,15 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
-public class ApplicationContext {
+public class ControllersAdapter {
     List<Class<?>> controllers = new ArrayList<>();
-    Map<String, MethodMapping> methodMappings = new HashMap<>();
-    List<RegexMethodMapping> regexMethodMappings = new ArrayList<>();
+    public Map<String, MethodMapping> methodMappings = new HashMap<>();
+    public List<RegexMethodMapping> regexMethodMappings = new ArrayList<>();
+    private static final Pattern PATH_VARIABLE_PATTERN = Pattern.compile("(\\{(.+)})");
+
+    public ControllersAdapter(List<Class<?>> components) throws NoSuchMethodException {
+        registerControllers(components);
+    }
 
     public MethodMapping getMethodMapping(String url, String method) {
         MethodMapping methodMapping = methodMappings.get(url + " " + method);
@@ -27,8 +34,37 @@ public class ApplicationContext {
         return getRegexMethodMapping(url, method);
     }
 
-    private Pattern pattern = Pattern.compile("(\\{(.+)})");
-    public void registerController(Class<?> controllerClass, Class<?> annotatedClass, boolean isResponseBody) throws NoSuchMethodException {
+    private void registerControllers(List<Class<?>> components) throws NoSuchMethodException {
+        for (Class<?> clazz : components) {
+            RestController restController = clazz.getAnnotation(RestController.class);
+            Controller controller = clazz.getAnnotation(Controller.class);
+            Component component = clazz.getAnnotation(Component.class);
+
+            if (restController != null && !clazz.isInterface())
+                registerController(clazz, clazz, true);
+
+            else if (controller != null && !clazz.isInterface())
+                registerController(clazz, clazz, false);
+
+            else if (component != null) {
+                Class<?>[] interfaces = clazz.getInterfaces();
+                for (Class<?> _interface : interfaces) {
+                    RestController interfaceRestAnn = _interface.getAnnotation(RestController.class);
+                    if (interfaceRestAnn != null) {
+                        registerController(clazz, _interface, true);
+                        break;
+                    }
+                    Controller interfaceControllerAnn = _interface.getAnnotation(Controller.class);
+                    if (interfaceControllerAnn != null) {
+                        registerController(clazz, _interface, false);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private void registerController(Class<?> controllerClass, Class<?> annotatedClass, boolean isResponseBody) throws NoSuchMethodException {
         controllers.add(controllerClass);
 
         RequestMapping requestMapping = annotatedClass.getAnnotation(RequestMapping.class);
@@ -85,7 +121,7 @@ public class ApplicationContext {
         path = path.replace("*", "[^\\/]+");
         AtomicInteger i = new AtomicInteger(1);
         String finalPath = path;
-        return pattern.matcher(finalPath).replaceAll(matchResult -> {
+        return PATH_VARIABLE_PATTERN.matcher(finalPath).replaceAll(matchResult -> {
             String parameterName = finalPath.substring(matchResult.start() + 1, matchResult.end() - 1);
             methodMapping.addParameter(parameterName, i.getAndIncrement());
             return "([^\\/]+)";

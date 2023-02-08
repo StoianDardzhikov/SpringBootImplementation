@@ -18,7 +18,7 @@ public class Container {
     public static int DEFAULT_NUMBER_OF_THREADS_FOR_ASYNC_METHODS = 16;
 
     HashMap<String, Object> keyInstances = new HashMap<>();
-    HashMap<Class<?>, Object> classInstances = new HashMap<>();
+    public HashMap<Class<?>, Object> classInstances = new HashMap<>();
     HashMap<Class<?>, Class<?>> implementations = new HashMap<>();
     HashSet<Method> asyncMethods = new HashSet<>();
     HashMap<String, ExecutorService> threadPoolExecutors = new HashMap<>();

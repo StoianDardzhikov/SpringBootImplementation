@@ -1,5 +1,6 @@
-package org.example;
+package org.example.Adapters;
 
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.datasource.pooled.PooledDataSource;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.Configuration;
@@ -7,23 +8,32 @@ import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
+import org.example.AnnotationApplicationContext;
+import org.example.DependencyInjector.Annotations.Inject;
+import org.example.SpringApplication;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.List;
 import java.util.Properties;
 
 public class MyBatisAdapter {
     Configuration configuration;
     SqlSessionFactory sqlSessionFactory;
+    AnnotationApplicationContext applicationContext;
 
-    public MyBatisAdapter() throws IOException {
+    @Inject
+    public MyBatisAdapter(AnnotationApplicationContext applicationContext) throws Exception {
+        this.applicationContext = applicationContext;
         this.configuration = createMyBatisConfig();
         this.sqlSessionFactory = new SqlSessionFactoryBuilder().build(configuration);
+        initializeMappers();
     }
-    public Configuration createMyBatisConfig() throws IOException {
+
+    private Configuration createMyBatisConfig() throws IOException {
         Properties properties = new Properties();
         InputStream inputStream = SpringApplication.class.getClassLoader().getResourceAsStream("application.properties");
         properties.load(inputStream);
@@ -41,7 +51,18 @@ public class MyBatisAdapter {
         return new Configuration(environment);
     }
 
-    public Object createMapperInstance(Class<?> mapperClass) {
+    public void initializeMappers() throws Exception {
+        List<Class<?>> components = applicationContext.getClasses();
+        for (Class<?> mapperClass : components) {
+            if (!mapperClass.isAnnotationPresent(Mapper.class))
+                continue;
+
+            Object mapper = createMapperInstance(mapperClass);
+            applicationContext.registerInstance(mapperClass, mapper);
+        }
+    }
+
+    private Object createMapperInstance(Class<?> mapperClass) {
         configuration.addMapper(mapperClass);
         return createMapperProxy(mapperClass);
     }

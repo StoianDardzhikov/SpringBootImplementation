@@ -1,7 +1,10 @@
 package org.example;
 
 import com.google.gson.Gson;
-import org.example.DependencyInjector.Container;
+import org.example.Adapters.ControllersAdapter;
+import org.example.AnnotationApplicationContext;
+import org.example.MethodMapping;
+import org.example.ResponseEntity;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -13,13 +16,13 @@ import java.util.Enumeration;
 import java.util.Map;
 
 public class DispatcherServlet extends HttpServlet {
-    private final ApplicationContext applicationContext;
-    private final Container container;
+    private final ControllersAdapter controllersAdapter;
+    private final AnnotationApplicationContext applicationContext;
     private final Gson gson;
 
-    public DispatcherServlet(ApplicationContext applicationContext, Container container) {
+    public DispatcherServlet(ControllersAdapter controllersAdapter, AnnotationApplicationContext applicationContext) {
+        this.controllersAdapter = controllersAdapter;
         this.applicationContext = applicationContext;
-        this.container = container;
         this.gson = new Gson();
     }
 
@@ -40,7 +43,7 @@ public class DispatcherServlet extends HttpServlet {
 
         Class<?> controllerClass = methodMapping.controller;
         try {
-            Object instance = container.getInstance(controllerClass);
+            Object instance = applicationContext.getInstance(controllerClass);
             Object responseObj = methodMapping.invoke(instance);
             if (!methodMapping.isResponseBody) {
                 resp.setStatus(HttpServletResponse.SC_OK);
@@ -70,7 +73,10 @@ public class DispatcherServlet extends HttpServlet {
 
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String method = req.getMethod();
-        MethodMapping controllerMapping = applicationContext.getMethodMapping(req.getPathInfo(), method);
+        MethodMapping controllerMapping = controllersAdapter.getMethodMapping(req.getPathInfo(), method);
+        System.out.println(controllerMapping);
+        System.out.println(controllersAdapter.methodMappings);
+        System.out.println(controllersAdapter.regexMethodMappings);
         if (controllerMapping == null) {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;
